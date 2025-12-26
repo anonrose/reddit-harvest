@@ -37,3 +37,9 @@ export {
   WillingnessToPaySchema,
   SupportingQuoteSchema
 } from "./schemas.js";
+export {
+  findAnalysisFiles,
+  loadAnalysis,
+  explore,
+  runExplorer
+} from "./explorer.js";

@@ -11,6 +11,7 @@ import { harvestSubredditsToFiles, formatPostsToText } from "./redditHarvest.js"
 import { normalizeSubredditsArg, ensureDir } from "./utils.js";
 import { analyzeCorpus, analyzeFileToMarkdown } from "./openaiAnalyze.js";
 import { createDedupeTracker, resetDedupeIndex } from "./dedupe.js";
+import { runExplorer } from "./explorer.js";
 
 loadEnv({ argv: hideBin(process.argv) });
 
@@ -213,6 +214,13 @@ async function runAnalyze(argv) {
   }
 }
 
+async function runExplore(argv) {
+  const dir = argv.dir ? path.resolve(argv.dir) : path.resolve("outputs");
+  const latest = Boolean(argv.latest);
+
+  await runExplorer({ dir, latest });
+}
+
 yargs(hideBin(process.argv))
   .scriptName("reddit-harvest")
   .command(
@@ -252,6 +260,15 @@ yargs(hideBin(process.argv))
         .option("quoteFidelity", { type: "boolean", default: false, describe: "Require supporting quotes for all claims" })
         .option("verbose", { type: "boolean", default: false, describe: "Verbose debug logging" }),
     (argv) => runAnalyze(argv).catch(exitWithError)
+  )
+  .command(
+    "explore",
+    "Interactively browse analysis results",
+    (y) =>
+      y
+        .option("dir", { type: "string", default: "outputs", describe: "Directory containing analysis files" })
+        .option("latest", { type: "boolean", default: false, describe: "Auto-select the most recent analysis" }),
+    (argv) => runExplore(argv).catch(exitWithError)
   )
   .demandCommand(1)
   .help()

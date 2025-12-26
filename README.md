@@ -205,6 +205,43 @@ In this mode:
 
 ---
 
+## Interactive Explorer
+
+After running analysis, use the interactive explorer to browse results in your terminal.
+
+### Launch the explorer
+
+```bash
+reddit-harvest explore
+```
+
+### Auto-select latest analysis
+
+```bash
+reddit-harvest explore --latest
+```
+
+### Browse from a specific directory
+
+```bash
+reddit-harvest explore --dir ./my-outputs
+```
+
+### Explorer features
+
+- **Arrow-key navigation** through menus
+- **Browse by category**:
+  - 📊 Opportunities - Product ideas with confidence levels
+  - 🔥 Pain Points - Problems ranked by frequency
+  - 👤 Personas - User types and their pain points
+  - 🏢 Competitors - Mentioned competitors with sentiment
+- **Detailed views** for each item with:
+  - Color-coded confidence/frequency indicators
+  - Supporting quotes with Reddit permalinks
+  - Risks and MVP experiments
+
+---
+
 ## Rate Limiting
 
 ### Adjust request delay
@@ -253,6 +290,13 @@ Default is 1100ms between requests. Increase if you're hitting rate limits.
 | `--quoteFidelity` | boolean | `false` | Require supporting quotes |
 | `--verbose` | boolean | `false` | Debug logging |
 
+### explore command
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--dir` | string | `outputs` | Directory containing analysis files |
+| `--latest` | boolean | `false` | Auto-select the most recent analysis |
+
 ---
 
 ## Examples
@@ -292,6 +336,16 @@ reddit-harvest harvest \
   --limit 50 \
   --includeComments \
   --analyze
+```
+
+### Explore results interactively
+
+```bash
+# After running analysis, explore the results
+reddit-harvest explore --latest
+
+# Or browse all available analyses
+reddit-harvest explore
 ```
 
 ---
