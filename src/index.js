@@ -1,7 +1,24 @@
 export { loadEnv } from "./env.js";
-export { createRedditClient } from "./redditClient.js";
-export { harvestSubredditToText, harvestSubredditsToFiles } from "./redditHarvest.js";
-export { createOpenAIClient, analyzeCorpusTextToMarkdown, analyzeFileToMarkdown } from "./openaiAnalyze.js";
+export { createRedditClient, withRetry } from "./redditClient.js";
+export {
+  harvestSubreddit,
+  harvestSubredditToText,
+  harvestSubredditsToFiles,
+  formatPostsToText
+} from "./redditHarvest.js";
+export {
+  createOpenAIClient,
+  analyzeCorpus,
+  analyzeCorpusTextToMarkdown,
+  analyzeFileToMarkdown
+} from "./openaiAnalyze.js";
+export { formatPostsToJSONL, parseJSONL } from "./formatters.js";
+export {
+  loadDedupeIndex,
+  saveDedupeIndex,
+  resetDedupeIndex,
+  createDedupeTracker
+} from "./dedupe.js";
 export {
   nowTimestampForFiles,
   ensureDir,
@@ -10,5 +27,3 @@ export {
   normalizeSubredditsArg,
   writeTextFile
 } from "./utils.js";
-
-

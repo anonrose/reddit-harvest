@@ -1,6 +1,6 @@
 ## reddit-harvest
 
-Harvest subreddit posts (and optionally comments) into `.txt` corpus files for product research, with optional OpenAI synthesis.
+Harvest subreddit posts (and optionally comments) into corpus files for product research, with advanced filtering, deduplication, and OpenAI-powered analysis.
 
 ### Install (after publishing)
 
@@ -29,64 +29,282 @@ This project expects the **refresh-token** flow:
 - `REDDIT_REFRESH_TOKEN`
 - `REDDIT_USER_AGENT`
 
-### Usage
+### OpenAI credentials (optional)
 
-### Harvest into a txt corpus
+For analysis features:
+
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (default: `gpt-4o-mini`)
+
+---
+
+## Usage
+
+### Basic harvest
 
 ```bash
-pnpm run harvest -- --subreddits "startups,Entrepreneur" --listing hot --limit 25 --includeComments --commentLimit 50
+reddit-harvest harvest --subreddits "startups,Entrepreneur" --listing hot --limit 25
 ```
 
 Outputs go to `outputs/` as timestamped files (one per subreddit).
 
-### Run as a globally-installed CLI (after publishing)
+### With comments
 
 ```bash
-reddit-harvest harvest --subreddits "startups,Entrepreneur" --limit 25
+reddit-harvest harvest --subreddits "startups" --limit 25 --includeComments --commentLimit 50
 ```
 
-### Verbose logging
+---
+
+## Filtering Options
+
+### Filter by score and comments
 
 ```bash
-reddit-harvest harvest --subreddits "startups" --limit 10 --verbose
+reddit-harvest harvest --subreddits "startups" --limit 100 --minScore 10 --minComments 5
 ```
 
-### Use a specific env file
+### Filter by date range
 
 ```bash
-pnpm run harvest -- --env ./my.env --subreddits "startups" --limit 10
+reddit-harvest harvest --subreddits "startups" --limit 100 --after "2024-01-01" --before "2024-12-31"
 ```
 
-You can also set `ENV_FILE` instead of passing `--env`.
-
-### Harvest + OpenAI analysis (optional)
+### Search mode (instead of listing)
 
 ```bash
-pnpm run harvest:analyze -- --subreddits "startups,Entrepreneur" --listing top --time week --limit 25
+reddit-harvest harvest --subreddits "startups" --search "finding customers" --limit 50
 ```
 
-This will also create a single `outputs/<timestamp>-analysis.md` file synthesizing product opportunities, pain points, and themes across the harvested text.
+When `--search` is provided, it uses Reddit's search API instead of hot/new/top listings.
 
-### Analyze an existing txt file
+---
+
+## Deduplication
+
+Skip posts you've already harvested:
 
 ```bash
-pnpm run analyze -- --input outputs/your-file.txt
+reddit-harvest harvest --subreddits "startups" --limit 100 --dedupe
 ```
 
-### CLI options (high level)
+Reset the dedupe index:
 
-- **--subreddits**: Comma-separated list, e.g. `"startups,Entrepreneur"`
-- **--listing**: `hot|new|top` (default: `hot`)
-- **--time**: For `top` only: `hour|day|week|month|year|all`
-- **--limit**: Number of posts per subreddit
-- **--includeComments**: Include top-level comments
-- **--commentLimit**: Max comments per post (best-effort)
-- **--outDir**: Output directory (default: `outputs`)
-- **--analyze**: Run OpenAI synthesis after harvesting (requires `OPENAI_API_KEY`)
+```bash
+reddit-harvest harvest --subreddits "startups" --limit 100 --resetDedupe
+```
 
-### Notes / safety
+The dedupe index is stored in `outputs/.harvest-index.json`.
 
-- **PII / sensitive info**: be careful what you store/share from Reddit content.
-- **Rate limits**: Reddit will rate limit; keep limits modest.
+---
 
+## Output Formats
 
+### Text format (default)
+
+```bash
+reddit-harvest harvest --subreddits "startups" --limit 25 --format txt
+```
+
+### JSONL format (structured, one post per line)
+
+```bash
+reddit-harvest harvest --subreddits "startups" --limit 25 --format jsonl
+```
+
+JSONL is better for programmatic analysis. Each line contains:
+
+```json
+{
+  "id": "abc123",
+  "subreddit": "startups",
+  "title": "Post title",
+  "author": "username",
+  "created": "2024-01-15T10:30:00.000Z",
+  "score": 42,
+  "numComments": 15,
+  "url": "https://...",
+  "permalink": "/r/startups/comments/...",
+  "selftext": "Post body...",
+  "comments": [{ "id": "...", "author": "...", "score": 5, "body": "..." }]
+}
+```
+
+---
+
+## OpenAI Analysis
+
+### Harvest + analyze in one command
+
+```bash
+reddit-harvest harvest --subreddits "startups,Entrepreneur" --limit 50 --analyze
+```
+
+This generates:
+- `outputs/<timestamp>-analysis.md` - Full research synthesis
+- `outputs/<timestamp>-opportunities.json` - Structured product opportunities
+
+### Analyze an existing corpus file
+
+```bash
+reddit-harvest analyze --input outputs/your-file.jsonl
+```
+
+Works with both `.txt` and `.jsonl` files.
+
+---
+
+## Analysis Features
+
+### Two-stage analysis
+
+When analyzing multiple subreddits, the analysis runs in two stages:
+1. **Per-subreddit analysis** - Deep dive into each subreddit's pain points and themes
+2. **Global synthesis** - Cross-subreddit patterns and opportunities
+
+### Auto-tagging
+
+The analysis extracts structured tags:
+- **Pain points** with categories, descriptions, and supporting quotes
+- **Personas** with roles and associated pain points
+- **Urgency level** (low/medium/high)
+- **Competitors** mentioned with sentiment
+- **Willingness-to-pay signals**
+
+### Structured opportunities output
+
+`opportunities.json` contains actionable product ideas:
+
+```json
+[{
+  "id": "opp-1",
+  "title": "Automated customer discovery tool",
+  "targetUser": "Solo founders",
+  "problem": "Spending too much time on manual outreach",
+  "currentWorkaround": "Cold emails and LinkedIn DMs",
+  "proposedSolution": "AI-powered lead qualification",
+  "confidence": "medium",
+  "confidenceReason": "Multiple mentions but unclear willingness to pay",
+  "supportingQuotes": [{ "text": "I spend 4 hours a day...", "permalink": "https://..." }],
+  "risks": ["Crowded market", "Privacy concerns"],
+  "mvpExperiment": "Landing page with email capture"
+}]
+```
+
+### Quote fidelity mode
+
+Require every claim to have supporting quotes:
+
+```bash
+reddit-harvest harvest --subreddits "startups" --limit 50 --analyze --quoteFidelity
+```
+
+In this mode:
+- Every insight includes at least one quote + permalink
+- Claims without direct evidence are labeled as `[HYPOTHESIS]`
+
+---
+
+## Rate Limiting
+
+### Adjust request delay
+
+```bash
+reddit-harvest harvest --subreddits "startups" --limit 100 --requestDelayMs 2000
+```
+
+Default is 1100ms between requests. Increase if you're hitting rate limits.
+
+---
+
+## CLI Reference
+
+### harvest command
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--subreddits` | string | required | Comma-separated list of subreddits |
+| `--listing` | choice | `hot` | `hot`, `new`, or `top` |
+| `--time` | choice | `week` | Time range for `top`: `hour`, `day`, `week`, `month`, `year`, `all` |
+| `--limit` | number | `25` | Max posts per subreddit |
+| `--search` | string | - | Search query (uses Reddit search instead of listing) |
+| `--minScore` | number | - | Skip posts below this score |
+| `--minComments` | number | - | Skip posts with fewer comments |
+| `--after` | string | - | Only posts after this date (ISO format) |
+| `--before` | string | - | Only posts before this date (ISO format) |
+| `--includeComments` | boolean | `false` | Include top-level comments |
+| `--commentLimit` | number | `50` | Max comments per post |
+| `--commentDepth` | number | `1` | Reply depth when expanding |
+| `--outDir` | string | `outputs` | Output directory |
+| `--format` | choice | `txt` | `txt` or `jsonl` |
+| `--dedupe` | boolean | `false` | Skip previously harvested posts |
+| `--resetDedupe` | boolean | `false` | Clear dedupe index first |
+| `--requestDelayMs` | number | `1100` | Delay between API requests |
+| `--analyze` | boolean | `false` | Run OpenAI analysis after harvest |
+| `--quoteFidelity` | boolean | `false` | Require supporting quotes |
+| `--verbose` | boolean | `false` | Debug logging |
+
+### analyze command
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--input` | string | required | Path to corpus file (`.txt` or `.jsonl`) |
+| `--outDir` | string | `outputs` | Output directory |
+| `--quoteFidelity` | boolean | `false` | Require supporting quotes |
+| `--verbose` | boolean | `false` | Debug logging |
+
+---
+
+## Examples
+
+### Full product research workflow
+
+```bash
+# Harvest from multiple subreddits with filters
+reddit-harvest harvest \
+  --subreddits "startups,Entrepreneur,SaaS,smallbusiness" \
+  --listing top \
+  --time month \
+  --limit 100 \
+  --minScore 5 \
+  --includeComments \
+  --commentLimit 20 \
+  --format jsonl \
+  --dedupe \
+  --analyze \
+  --quoteFidelity
+
+# Re-run later to get new posts only
+reddit-harvest harvest \
+  --subreddits "startups,Entrepreneur,SaaS,smallbusiness" \
+  --listing new \
+  --limit 50 \
+  --dedupe \
+  --format jsonl
+```
+
+### Quick search for specific topics
+
+```bash
+reddit-harvest harvest \
+  --subreddits "startups" \
+  --search "finding first customers" \
+  --limit 50 \
+  --includeComments \
+  --analyze
+```
+
+---
+
+## Notes / Safety
+
+- **PII / sensitive info**: Be careful what you store/share from Reddit content.
+- **Rate limits**: Reddit will rate limit; keep limits modest and use `--requestDelayMs` if needed.
+- **API costs**: OpenAI analysis costs money. Use `--limit` to control corpus size.
+- **Respect Reddit ToS**: Don't use for spam, harassment, or violating Reddit's terms.
+
+---
+
+## License
+
+MIT

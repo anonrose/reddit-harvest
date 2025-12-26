@@ -33,7 +33,10 @@
   "scripts": {
     "harvest": "node src/cli.js harvest",
     "analyze": "node src/cli.js analyze",
-    "harvest:analyze": "node src/cli.js harvest --analyze"
+    "harvest:analyze": "node src/cli.js harvest --analyze",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "exports": {
     ".": "./src/index.js"
@@ -45,7 +48,8 @@
     "ora": "^8.2.0",
     "snoowrap": "^1.23.0",
     "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
   }
 }
-
-
