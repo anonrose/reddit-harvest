@@ -45,6 +45,12 @@ Outputs go to `outputs/` as timestamped files (one per subreddit).
 reddit-harvest harvest --subreddits "startups,Entrepreneur" --limit 25
 ```
 
+### Verbose logging
+
+```bash
+reddit-harvest harvest --subreddits "startups" --limit 10 --verbose
+```
+
 ### Use a specific env file
 
 ```bash

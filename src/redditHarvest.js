@@ -22,10 +22,13 @@ export async function harvestSubredditToText({
   limit = 25,
   includeComments = false,
   commentLimit = 50,
-  commentDepth = 1
+  commentDepth = 1,
+  onProgress
 }) {
   const sub = reddit.getSubreddit(subreddit);
   let postsListing;
+
+  onProgress?.({ type: "subreddit_start", subreddit, listing, time, limit });
 
   if (listing === "hot") postsListing = sub.getHot({ limit });
   else if (listing === "new") postsListing = sub.getNew({ limit });
@@ -33,6 +36,7 @@ export async function harvestSubredditToText({
   else throw new Error(`Unknown listing: ${listing} (expected hot|new|top)`);
 
   const posts = await postsListing;
+  onProgress?.({ type: "posts_fetched", subreddit, totalPosts: posts.length });
 
   const header = [
     `# Reddit corpus export`,
@@ -50,6 +54,15 @@ export async function harvestSubredditToText({
   for (let i = 0; i < posts.length; i += 1) {
     const p = posts[i];
     const createdIso = p?.created_utc ? new Date(p.created_utc * 1000).toISOString() : "";
+
+    onProgress?.({
+      type: "post_progress",
+      subreddit,
+      index: i + 1,
+      total: posts.length,
+      postId: p?.id,
+      title: p?.title
+    });
 
     sections.push(
       [
@@ -73,10 +86,25 @@ export async function harvestSubredditToText({
     if (!includeComments) continue;
 
     try {
+      onProgress?.({
+        type: "comments_expand_start",
+        subreddit,
+        index: i + 1,
+        total: posts.length,
+        postId: p?.id
+      });
       const expanded = await p.expandReplies({ limit: commentLimit, depth: commentDepth });
       const topLevel = commentsToArray(expanded?.comments ?? p?.comments).slice(0, commentLimit);
       if (topLevel.length === 0) {
         sections.push(`comments:\n(none)\n`);
+        onProgress?.({
+          type: "comments_expand_done",
+          subreddit,
+          index: i + 1,
+          total: posts.length,
+          postId: p?.id,
+          comments: 0
+        });
         continue;
       }
 
@@ -93,11 +121,28 @@ export async function harvestSubredditToText({
       });
 
       sections.push(["comments:", ...commentLines, ""].join("\n"));
+      onProgress?.({
+        type: "comments_expand_done",
+        subreddit,
+        index: i + 1,
+        total: posts.length,
+        postId: p?.id,
+        comments: topLevel.length
+      });
     } catch (err) {
       sections.push(`comments:\n(error expanding replies: ${safeText(err?.message ?? err)})\n`);
+      onProgress?.({
+        type: "comments_expand_error",
+        subreddit,
+        index: i + 1,
+        total: posts.length,
+        postId: p?.id,
+        error: safeText(err?.message ?? err)
+      });
     }
   }
 
+  onProgress?.({ type: "subreddit_done", subreddit });
   return sections.join("\n");
 }
 
@@ -110,7 +155,8 @@ export async function harvestSubredditsToFiles({
   limit,
   includeComments,
   commentLimit,
-  commentDepth
+  commentDepth,
+  onProgress
 }) {
   const ts = nowTimestampForFiles();
   const outputs = [];
@@ -124,13 +170,16 @@ export async function harvestSubredditsToFiles({
       limit,
       includeComments,
       commentLimit,
-      commentDepth
+      commentDepth,
+      onProgress
     });
 
     const fileName = `${ts}-r_${sanitizeForFilename(sr)}.txt`;
     const filePath = path.join(outDir, fileName);
     await writeTextFile(filePath, text);
     outputs.push({ subreddit: sr, filePath, textLength: text.length });
+
+    onProgress?.({ type: "file_written", subreddit: sr, filePath, textLength: text.length });
   }
 
   return { timestamp: ts, outputs };

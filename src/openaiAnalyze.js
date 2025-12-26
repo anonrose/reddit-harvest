@@ -32,7 +32,8 @@ export function createOpenAIClient() {
 
 export async function analyzeCorpusTextToMarkdown({
   inputText,
-  model = process.env.OPENAI_MODEL || "gpt-4o-mini"
+  model = process.env.OPENAI_MODEL || "gpt-4o-mini",
+  onProgress
 }) {
   const client = createOpenAIClient();
 
@@ -41,6 +42,7 @@ export async function analyzeCorpusTextToMarkdown({
 
   for (let i = 0; i < chunks.length; i += 1) {
     const chunk = chunks[i];
+    onProgress?.({ type: "analyze_chunk_start", index: i + 1, total: chunks.length, chars: chunk.length });
     const summary = await chat(client, {
       model,
       system:
@@ -58,8 +60,10 @@ export async function analyzeCorpusTextToMarkdown({
       ].join("\n")
     });
     chunkSummaries.push(summary);
+    onProgress?.({ type: "analyze_chunk_done", index: i + 1, total: chunks.length });
   }
 
+  onProgress?.({ type: "analyze_synthesis_start" });
   const final = await chat(client, {
     model,
     system:
@@ -79,6 +83,7 @@ export async function analyzeCorpusTextToMarkdown({
       chunkSummaries.map((s, idx) => `### Chunk ${idx + 1}\n${s}`).join("\n\n")
     ].join("\n")
   });
+  onProgress?.({ type: "analyze_synthesis_done" });
 
   const header = [
     `# Reddit → product research synthesis`,
