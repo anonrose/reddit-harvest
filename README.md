@@ -1,4 +1,4 @@
-## reddit-analysis
+## reddit-harvest
 
 Harvest subreddit posts (and optionally comments) into `.txt` corpus files for product research, with optional OpenAI synthesis.
 
@@ -32,6 +32,14 @@ npm run harvest -- --subreddits "startups,Entrepreneur" --listing hot --limit 25
 ```
 
 Outputs go to `outputs/` as timestamped files (one per subreddit).
+
+### Use a specific env file
+
+```bash
+npm run harvest -- --env ./my.env --subreddits "startups" --limit 10
+```
+
+You can also set `ENV_FILE` instead of passing `--env`.
 
 ### Harvest + OpenAI analysis (optional)
 

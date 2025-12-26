@@ -1,0 +1,24 @@
+{
+  "name": "reddit-analysis",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Harvest subreddit content into text files for analysis, with optional OpenAI synthesis.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "harvest": "node src/cli.js harvest",
+    "analyze": "node src/cli.js analyze",
+    "harvest:analyze": "node src/cli.js harvest --analyze"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "openai": "^4.73.1",
+    "snoowrap": "^1.23.0",
+    "yargs": "^17.7.2"
+  }
+}
+
+
