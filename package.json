@@ -2,16 +2,27 @@
   "name": "reddit-harvest",
   "version": "0.1.0",
   "type": "module",
-  "description": "Harvest subreddit content into text files for analysis, with optional OpenAI synthesis.",
+  "description": "Harvest subreddit posts into structured corpus files for product research, with filtering, deduplication, OpenAI analysis, and interactive exploration.",
   "license": "MIT",
   "author": "anonrose",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anonrose/reddit-harvest.git"
+  },
+  "bugs": {
+    "url": "https://github.com/anonrose/reddit-harvest/issues"
+  },
+  "homepage": "https://github.com/anonrose/reddit-harvest#readme",
   "keywords": [
     "reddit",
     "snoowrap",
     "openai",
     "product-research",
     "research",
-    "cli"
+    "cli",
+    "harvest",
+    "scraper",
+    "analysis"
   ],
   "bin": {
     "reddit-harvest": "src/cli.js"
@@ -33,6 +44,7 @@
   "scripts": {
     "harvest": "node src/cli.js harvest",
     "analyze": "node src/cli.js analyze",
+    "explore": "node src/cli.js explore",
     "harvest:analyze": "node src/cli.js harvest --analyze",
     "test": "vitest run",
     "test:watch": "vitest",
