@@ -27,3 +27,13 @@ export {
   normalizeSubredditsArg,
   writeTextFile
 } from "./utils.js";
+export {
+  TagsSchema,
+  OpportunitiesSchema,
+  OpportunitySchema,
+  PainPointSchema,
+  PersonaSchema,
+  CompetitorSchema,
+  WillingnessToPaySchema,
+  SupportingQuoteSchema
+} from "./schemas.js";

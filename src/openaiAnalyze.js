@@ -1,8 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
 import { chunkStringBySize, ensureDir, nowTimestampForFiles } from "./utils.js";
 import { parseJSONL } from "./formatters.js";
+import { TagsSchema, OpportunitiesSchema } from "./schemas.js";
 
 function requireEnv(name) {
   const v = process.env[name];
@@ -14,17 +16,40 @@ function asText(x) {
   return x === null || x === undefined ? "" : String(x);
 }
 
-async function chat(client, { model, system, user, jsonMode = false }) {
+/**
+ * Simple chat completion (for non-structured responses).
+ */
+async function chat(client, { model, system, user }) {
   const resp = await client.chat.completions.create({
     model,
     messages: [
       { role: "system", content: system },
       { role: "user", content: user }
     ],
-    temperature: 0.3,
-    ...(jsonMode ? { response_format: { type: "json_object" } } : {})
+    temperature: 0.3
   });
   return asText(resp.choices?.[0]?.message?.content).trim();
+}
+
+/**
+ * Structured chat completion using Zod schema.
+ */
+async function chatWithSchema(client, { model, system, user, schema, schemaName }) {
+  const resp = await client.beta.chat.completions.parse({
+    model,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ],
+    temperature: 0.3,
+    response_format: zodResponseFormat(schema, schemaName)
+  });
+
+  const parsed = resp.choices?.[0]?.message?.parsed;
+  if (!parsed) {
+    throw new Error(`Failed to parse structured response for ${schemaName}`);
+  }
+  return parsed;
 }
 
 export function createOpenAIClient() {
@@ -135,43 +160,37 @@ async function analyzeSubredditPosts({ client, model, posts, subreddit, quoteFid
 }
 
 /**
- * Extract structured tags from analyzed content.
+ * Extract structured tags from analyzed content using Zod schema.
  */
 async function extractTags({ client, model, subredditSummaries, quoteFidelity, onProgress }) {
   onProgress?.({ type: "tagging_start" });
 
   const allSummaries = subredditSummaries.map(s => `## r/${s.subreddit}\n${s.synthesis}`).join("\n\n");
 
-  const response = await chat(client, {
+  const tags = await chatWithSchema(client, {
     model,
-    system: `You are a product researcher. Extract structured data from research summaries. Return valid JSON only.`,
+    system: `You are a product researcher. Extract structured data from research summaries. Be thorough and accurate.`,
     user: [
       `Extract structured tags from this research:`,
       ``,
       allSummaries,
       ``,
-      `Return JSON with this structure:`,
-      `{`,
-      `  "painPoints": [{ "category": "string", "description": "string", "quote": "string or null", "permalink": "string or null", "frequency": "common|occasional|rare" }],`,
-      `  "personas": [{ "role": "string", "description": "string", "painPoints": ["category refs"] }],`,
-      `  "urgency": "low|medium|high",`,
-      `  "urgencyReason": "string",`,
-      `  "competitors": [{ "name": "string", "sentiment": "positive|neutral|negative", "mentions": number }],`,
-      `  "willingnessToPay": { "signals": ["string"], "confidence": "low|medium|high" }`,
-      `}`
+      `Extract:`,
+      `- Pain points with category, description, supporting quote, permalink, and frequency`,
+      `- User personas with their associated pain points`,
+      `- Overall urgency level with explanation`,
+      `- Competitors mentioned with sentiment`,
+      `- Willingness to pay signals with confidence level`
     ].join("\n"),
-    jsonMode: true
+    schema: TagsSchema,
+    schemaName: "tags"
   });
 
-  try {
-    return JSON.parse(response);
-  } catch {
-    return { error: "Failed to parse tags", raw: response };
-  }
+  return tags;
 }
 
 /**
- * Generate structured product opportunities.
+ * Generate structured product opportunities using Zod schema.
  */
 async function generateOpportunities({ client, model, subredditSummaries, tags, quoteFidelity, onProgress }) {
   onProgress?.({ type: "opportunities_start" });
@@ -179,9 +198,9 @@ async function generateOpportunities({ client, model, subredditSummaries, tags, 
   const allSummaries = subredditSummaries.map(s => `## r/${s.subreddit}\n${s.synthesis}`).join("\n\n");
   const quoteFidelityNote = getQuoteFidelityInstruction(quoteFidelity);
 
-  const response = await chat(client, {
+  const result = await chatWithSchema(client, {
     model,
-    system: `You are a product strategist identifying actionable product opportunities from research. Return valid JSON only.${quoteFidelityNote}`,
+    system: `You are a product strategist identifying actionable product opportunities from research.${quoteFidelityNote}`,
     user: [
       `Based on this research, generate 5-10 product opportunities:`,
       ``,
@@ -190,29 +209,23 @@ async function generateOpportunities({ client, model, subredditSummaries, tags, 
       `Tags extracted:`,
       JSON.stringify(tags, null, 2),
       ``,
-      `Return JSON array with this structure:`,
-      `[{`,
-      `  "id": "opp-1",`,
-      `  "title": "Short descriptive title",`,
-      `  "targetUser": "Primary persona",`,
-      `  "problem": "Clear problem statement",`,
-      `  "currentWorkaround": "How they solve it now",`,
-      `  "proposedSolution": "High-level solution idea",`,
-      `  "confidence": "low|medium|high",`,
-      `  "confidenceReason": "Why this confidence level",`,
-      `  "supportingQuotes": [{ "text": "quote", "permalink": "url" }],`,
-      `  "risks": ["potential risks"],`,
-      `  "mvpExperiment": "Quick way to test this"`,
-      `}]`
+      `For each opportunity, provide:`,
+      `- A unique id (opp-1, opp-2, etc.)`,
+      `- A short descriptive title`,
+      `- Target user persona`,
+      `- Clear problem statement`,
+      `- Current workaround`,
+      `- Proposed solution idea`,
+      `- Confidence level (low/medium/high) with reasoning`,
+      `- Supporting quotes with permalinks`,
+      `- Potential risks`,
+      `- MVP experiment to test the idea`
     ].join("\n"),
-    jsonMode: true
+    schema: OpportunitiesSchema,
+    schemaName: "opportunities"
   });
 
-  try {
-    return JSON.parse(response);
-  } catch {
-    return [{ error: "Failed to parse opportunities", raw: response }];
-  }
+  return result.opportunities;
 }
 
 /**
@@ -292,10 +305,10 @@ export async function analyzeCorpus({
     subredditSummaries.push(summary);
   }
 
-  // Stage 2: Extract structured tags
+  // Stage 2: Extract structured tags (using Zod)
   const tags = await extractTags({ client, model, subredditSummaries, quoteFidelity, onProgress });
 
-  // Stage 3: Generate opportunities
+  // Stage 3: Generate opportunities (using Zod)
   const opportunities = await generateOpportunities({ client, model, subredditSummaries, tags, quoteFidelity, onProgress });
 
   // Stage 4: Final synthesis
