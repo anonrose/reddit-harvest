@@ -7,7 +7,7 @@ Harvest subreddit posts (and optionally comments) into `.txt` corpus files for p
 - **Install deps**:
 
 ```bash
-npm install
+pnpm install
 ```
 
 - **Create your env file**:
@@ -28,7 +28,7 @@ This project expects the **refresh-token** flow:
 ### Harvest into a txt corpus
 
 ```bash
-npm run harvest -- --subreddits "startups,Entrepreneur" --listing hot --limit 25 --includeComments --commentLimit 50
+pnpm run harvest -- --subreddits "startups,Entrepreneur" --listing hot --limit 25 --includeComments --commentLimit 50
 ```
 
 Outputs go to `outputs/` as timestamped files (one per subreddit).
@@ -36,7 +36,7 @@ Outputs go to `outputs/` as timestamped files (one per subreddit).
 ### Use a specific env file
 
 ```bash
-npm run harvest -- --env ./my.env --subreddits "startups" --limit 10
+pnpm run harvest -- --env ./my.env --subreddits "startups" --limit 10
 ```
 
 You can also set `ENV_FILE` instead of passing `--env`.
@@ -44,7 +44,7 @@ You can also set `ENV_FILE` instead of passing `--env`.
 ### Harvest + OpenAI analysis (optional)
 
 ```bash
-npm run harvest:analyze -- --subreddits "startups,Entrepreneur" --listing top --time week --limit 25
+pnpm run harvest:analyze -- --subreddits "startups,Entrepreneur" --listing top --time week --limit 25
 ```
 
 This will also create a single `outputs/<timestamp>-analysis.md` file synthesizing product opportunities, pain points, and themes across the harvested text.
@@ -52,7 +52,7 @@ This will also create a single `outputs/<timestamp>-analysis.md` file synthesizi
 ### Analyze an existing txt file
 
 ```bash
-npm run analyze -- --input outputs/your-file.txt
+pnpm run analyze -- --input outputs/your-file.txt
 ```
 
 ### CLI options (high level)

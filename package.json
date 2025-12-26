@@ -1,12 +1,14 @@
 {
-  "name": "reddit-analysis",
+  "name": "reddit-harvest",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Harvest subreddit content into text files for analysis, with optional OpenAI synthesis.",
   "license": "UNLICENSED",
+  "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=18.18.0",
+    "pnpm": ">=9"
   },
   "scripts": {
     "harvest": "node src/cli.js harvest",
