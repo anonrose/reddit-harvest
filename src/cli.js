@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import path from "node:path";
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";

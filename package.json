@@ -1,10 +1,30 @@
 {
   "name": "reddit-harvest",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Harvest subreddit content into text files for analysis, with optional OpenAI synthesis.",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "anonrose",
+  "keywords": [
+    "reddit",
+    "snoowrap",
+    "openai",
+    "product-research",
+    "research",
+    "cli"
+  ],
+  "bin": {
+    "reddit-harvest": "src/cli.js"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE",
+    "env.example"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=18.18.0",
@@ -14,6 +34,9 @@
     "harvest": "node src/cli.js harvest",
     "analyze": "node src/cli.js analyze",
     "harvest:analyze": "node src/cli.js harvest --analyze"
+  },
+  "exports": {
+    ".": "./src/index.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

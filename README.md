@@ -2,6 +2,12 @@
 
 Harvest subreddit posts (and optionally comments) into `.txt` corpus files for product research, with optional OpenAI synthesis.
 
+### Install (after publishing)
+
+```bash
+pnpm add -g reddit-harvest
+```
+
 ### Setup
 
 - **Install deps**:
@@ -32,6 +38,12 @@ pnpm run harvest -- --subreddits "startups,Entrepreneur" --listing hot --limit 2
 ```
 
 Outputs go to `outputs/` as timestamped files (one per subreddit).
+
+### Run as a globally-installed CLI (after publishing)
+
+```bash
+reddit-harvest harvest --subreddits "startups,Entrepreneur" --limit 25
+```
 
 ### Use a specific env file
 
