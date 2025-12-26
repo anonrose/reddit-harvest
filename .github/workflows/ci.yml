@@ -21,8 +21,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -46,8 +44,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -75,8 +71,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -92,4 +86,3 @@ jobs:
 
       - name: Verify exports
         run: node -e "import('./src/index.js').then(m => console.log('Exports:', Object.keys(m)))"
-
